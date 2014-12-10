@@ -34,7 +34,7 @@
             <h3>By: Mayank Dwivedi, Piyush Gupta, Sagar Parmar</h3>
         </div>
         <div class="row">
-            <div class="col-md-offset-3">
+            <div class="col-md-offset-1">
                 <h4>
                     <span class="label label-warning">Choose year:</span>
                     <select id="year">
@@ -65,17 +65,18 @@
                         <option value="7">7</option>
                         <option value="8">8</option>
                     </select>
-                    <button class="btn btn-primary" type="button" id="button-go">GO</button>
+                    <button class="btn btn-primary col-md-offset-1" type="button" id="button-go">GO</button>
                     <span class="label label-info" id="loading">Loading</span>
+                    <br/><br/>
                     <p>
+                        <span class="label label-warning">Choose File:</span>
                         <select id="file">
                         </select>
-                        <button class="btn btn-primary" type="button" id="button-vis" disabled>Visualize</button>
+                        <button class="btn btn-primary col-md-offset-4" type="button" id="button-vis" disabled>Visualize</button>
                     </p>
                     <p>
                         <h4>
                             <span class="label label-success">Correlation:</span>
-                            {#                <label for="corr">Correlation:</label>#}
                             <input type="text" id="corr" style="border:0;" class="">
                         </h4>
                     </p>
@@ -132,8 +133,7 @@
     });
 
     $('#button-vis').click(function(){
-        var toVisFile = jsonFile[$('#file').val()];
-        console.log(jsonFile);
+        var toVisFile = "http://127.0.0.1:5000" + jsonFile[$('#file').val()]+"?get=dummy";
          d3.json(toVisFile, function (error, graphData) {
             graph = graphData;
              removeGraph();
@@ -167,7 +167,6 @@
                 }
             }
         }
-        console.log(filteredLinks.length);
         return filteredLinks;
     }
 

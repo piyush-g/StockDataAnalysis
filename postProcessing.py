@@ -148,6 +148,8 @@ class PostProcessing():
             topWrapper['links'] = edgesName
             corrMatrix.append(curList)
 
+        print "corr matrix len = " + str(len(corrMatrix))
+        print "corr matrix0 len = " + str(len(corrMatrix[0]))
         clusterid, error, nfound = kmedoids(corrMatrix, clusters, npass=15, initialid=None)
         print clusterid
         i = 0
@@ -198,7 +200,16 @@ class PostProcessing():
         extencsv = ".csv"
         outfiles = []
         self.read_symbols(inputYear, extencsv, duration)
+
+        if duration == 3:
+            assert len(self.quarter_files) == 4
+        elif duration == 6:
+            assert len(self.quarter_files) == 2
+        else:
+            assert len(self.quarter_files) == 1
+
         for key in self.quarter_files:
+            print "key = " + str(key)
             self.get_correlation(self.quarter_files[key], self.exten_txt)
             outfile = self.createJson(self.corrFile + self.quarter_files[key], self.exten_txt,clusters)
             outfile = outfile[outfile.find('static')-1:]

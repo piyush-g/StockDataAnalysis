@@ -1,6 +1,6 @@
 from flask import Flask, flash, redirect, jsonify, render_template,\
      request, url_for , session , escape
-import postProcessing
+from postProcessing import PostProcessing
 
 app = Flask(__name__)
 
@@ -14,8 +14,8 @@ def visualize():
     input_year = request.args.get('year', 0, type=int)
     duration = request.args.get('duration', 0, type=int)
     clusters = request.args.get('clusters', 0, type=int)
-    pp = postProcessing.PostProcessing()
-    path = pp.main(input_year, duration,clusters)
+    pp = PostProcessing()
+    path = pp.main(input_year, duration, clusters)
     return jsonify(result=path)
 
 @app.route('/add_numbers', methods=['GET'])
