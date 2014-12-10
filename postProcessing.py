@@ -4,18 +4,20 @@ import json
 import datetime
 import csv
 import subprocess
+import os
 from dateutil.parser import parse
 from collections import defaultdict
 from Pycluster import *
 
-
 class PostProcessing():
-    resources = "Resources/"
+    resources = "/Users/sparmar/Documents/Fall2014/DataScience/code/StockDataAnalysis/Resources/"
     corrFile = "corr_matrix_"
-    static = "static/"
+    static = "/Users/sparmar/Documents/Fall2014/DataScience/code/StockDataAnalysis/static/"
     quarter_files = defaultdict(str)
     exten_txt = ".txt"
     exten_csv = ".csv"
+    # This will be the directory in which result will be generated
+    directory = ''
 
     def read_symbols(self, year, exten, duration):
         filename = 'y' + str(year)
@@ -78,7 +80,9 @@ class PostProcessing():
         for k1 in output:
             output_filename = filename + "_" + str(k1);
             self.quarter_files[k1] = output_filename
-            outputFileList[k1] = open(self.resources + output_filename + self.exten_txt, 'w');
+            if not os.path.exists(self.resources + self.directory):
+                os.makedirs(self.resources + self.directory)
+            outputFileList[k1] = open(self.resources + self.directory + output_filename + self.exten_txt, 'w')
             outputFileList[k1].write(str(size[k1]) + " " + str(count[k1]) + "\n")
             for k2 in output[k1]:
                 if (len(output[k1][k2]) != 0):
@@ -105,19 +109,19 @@ class PostProcessing():
                 bucket += 1
         return bucket
 
-    def createJson(self, inFile, exten):
+    def createJson(self, inFile, exten,clusters):
         topWrapper = {}
         nodeName = []
         edgesName = []
         # For k-medoids
         corrMatrix = []
 
-        with open(self.resources + inFile + exten, 'rb') as f:
+        with open(self.resources + self.directory + inFile + exten, 'rb') as f:
             line = f.readline()
             while line.strip() != "END":
                 line = line.split()
                 temp = {}
-                temp['name'] = line[1];
+                temp['name'] = line[1]
                 temp['group'] = 1  # random.randint(1,20);
                 nodeName.append(temp)
                 line = f.readline()
@@ -137,26 +141,31 @@ class PostProcessing():
                 if prevIndex != curIndex:
                     corrMatrix.append(list(curList))
                     del curList[:]
-                curList.append(temp['value'])
+                curList.append(1-temp['value'])
                 edgesName.append(temp)
                 prevIndex = curIndex
                 line = f.readline()
             topWrapper['links'] = edgesName
             corrMatrix.append(curList)
 
-        clusterid, error, nfound = kmedoids(corrMatrix, nclusters=8, npass=10, initialid=None)
+        clusterid, error, nfound = kmedoids(corrMatrix, clusters, npass=15, initialid=None)
         print clusterid
         i = 0
         for node in topWrapper['nodes']:
             node['group'] = int(clusterid[i])
             i += 1
-        outFile = self.static + inFile + ".json"
+
+        if not os.path.exists(self.static + self.directory):
+            os.makedirs(self.static + self.directory)
+        outFile = self.static + self.directory + inFile + ".json"
         outF = open(outFile, 'w')
         outF.write(json.dumps(topWrapper, sort_keys=True, indent=4, separators=(',', ': ')))
         outF.close()
+        return outFile
+
         # for mat in corrMatrix:
-        #    print " ".join(map(str,mat))
-        # print clusterid
+        #   print " ".join(map(str,mat))
+        #  print clusterid
         # print error
         # print nfound
         # print '*' * 10
@@ -167,34 +176,37 @@ class PostProcessing():
 
 
     def get_correlation(self, inputFileName, extension):
-        cmd = "./test.o ";
-        cmd = cmd + self.resources + inputFileName + extension + " " + self.resources + self.corrFile + inputFileName + extension;
+        cmd = "/Users/sparmar/Documents/Fall2014/DataScience/code/StockDataAnalysis/test.o "
+        cmd = cmd + self.resources + self.directory + inputFileName + extension + " " \
+              + self.resources + self.directory + self.corrFile + inputFileName + extension
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         for line in p.stdout.readlines():
             print line,
         retval = p.wait()
         if retval != 1:
-            print "incorrect command: " + cmd;
+            print "incorrect command: " + cmd
 
-    def main(self):
+    def main(self, inputYear, duration,clusters):
+
+        self.directory = str(inputYear) + '/' + str(duration) + '/'
         # Clean up before you start
-        self.remove_files(self.static, 'json')
-        self.remove_files(self.resources, 'txt')
+        self.remove_files(self.static + self.directory, 'json')
+        self.remove_files(self.resources + self.directory, 'txt')
 
         # Start
-        inputYear = 2013
-        duration = 3
         exten = ".txt"
         extencsv = ".csv"
+        outfiles = []
         self.read_symbols(inputYear, extencsv, duration)
         for key in self.quarter_files:
-            print "-" * 80
             self.get_correlation(self.quarter_files[key], self.exten_txt)
-            self.createJson(self.corrFile + self.quarter_files[key], self.exten_txt)
+            outfile = self.createJson(self.corrFile + self.quarter_files[key], self.exten_txt,clusters)
+            outfile = outfile[outfile.find('static')-1:]
+            outfiles.append(outfile)
+        return outfiles
 
     @staticmethod
     def remove_files(path, ext):
-        import os
         for root, dirs, files in os.walk(path):
             for currentFile in files:
                 if currentFile.lower().endswith(ext):
@@ -202,4 +214,7 @@ class PostProcessing():
 
 if __name__ == '__main__':
     pp = PostProcessing()
-    pp.main()
+    import sys
+    inputYear = int(sys.argv[1])
+    duration = int(sys.argv[2])
+    pp.main(inputYear, duration, 2)
